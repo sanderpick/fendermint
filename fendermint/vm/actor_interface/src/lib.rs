@@ -40,3 +40,4 @@ pub mod evm;
 pub mod init;
 pub mod multisig;
 pub mod system;
+pub mod tableland;

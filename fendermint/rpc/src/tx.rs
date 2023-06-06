@@ -17,11 +17,12 @@ use fvm_shared::econ::TokenAmount;
 use fvm_shared::MethodNum;
 
 use fendermint_vm_actor_interface::eam::CreateReturn;
+use fendermint_vm_actor_interface::tableland::QueryReturn;
 use fendermint_vm_message::chain::ChainMessage;
 
 use crate::message::{GasParams, MessageFactory};
 use crate::query::{QueryClient, QueryResponse};
-use crate::response::{decode_bytes, decode_fevm_create, decode_fevm_invoke};
+use crate::response::{decode_bytes, decode_fevm_create, decode_fevm_invoke, decode_query_read};
 
 /// Abstracting away what the return value is based on whether
 /// we broadcast transactions in sync, async or commit mode.
@@ -66,6 +67,18 @@ pub trait TxClient<M: BroadcastMode = TxCommit>: BoundClient + Send + Sync {
         let mf = self.message_factory_mut();
         let msg = mf.transaction(to, method_num, params, value, gas_params)?;
         let fut = self.perform(msg, decode_bytes);
+        let res = fut.await?;
+        Ok(res)
+    }
+
+    async fn query_read(
+        &mut self,
+        value: TokenAmount,
+        gas_params: GasParams,
+    ) -> anyhow::Result<M::Response<QueryReturn>> {
+        let mf = self.message_factory_mut();
+        let msg = mf.query_read(value, gas_params)?;
+        let fut = self.perform(msg, decode_query_read);
         let res = fut.await?;
         Ok(res)
     }

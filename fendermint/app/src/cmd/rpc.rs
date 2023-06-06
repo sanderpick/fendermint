@@ -28,6 +28,7 @@ use tendermint_rpc::HttpClient;
 use fendermint_rpc::message::{GasParams, MessageFactory};
 use fendermint_rpc::{client::FendermintClient, query::QueryClient};
 use fendermint_vm_actor_interface::eam::{self, CreateReturn};
+use fendermint_vm_actor_interface::tableland::QueryReturn;
 
 use crate::cmd;
 use crate::options::rpc::{BroadcastMode, FevmArgs, RpcFevmCommands, TransArgs};
@@ -39,37 +40,40 @@ use crate::{
 use super::key::read_secret_key;
 
 cmd! {
-  RpcArgs(self) {
-    let client = FendermintClient::new_http(self.url.clone(), self.proxy_url.clone())?;
-    match self.command.clone() {
-      RpcCommands::Query { height, command } => {
-        let height = Height::try_from(height)?;
-        query(client, height, command).await
-      },
-      RpcCommands::Transfer { args, to } => {
-        transfer(client, args, to).await
-      },
-      RpcCommands::Transaction { args, to, method_number, params } => {
-        transaction(client, args, to, method_number, params.clone()).await
-      },
-      RpcCommands::Fevm { args, command } => match command {
-        RpcFevmCommands::Create { contract, constructor_args } => {
-            fevm_create(client, args, contract, constructor_args).await
+    RpcArgs(self) {
+        let client = FendermintClient::new_http(self.url.clone(), self.proxy_url.clone())?;
+        match self.command.clone() {
+            RpcCommands::Query { height, command } => {
+                let height = Height::try_from(height)?;
+                query(client, height, command).await
+            },
+            RpcCommands::Transfer { args, to } => {
+                transfer(client, args, to).await
+            },
+            RpcCommands::Transaction { args, to, method_number, params } => {
+                transaction(client, args, to, method_number, params.clone()).await
+            },
+            RpcCommands::Tableland { args } => {
+                query_read(client, args).await
+            },
+            RpcCommands::Fevm { args, command } => match command {
+                RpcFevmCommands::Create { contract, constructor_args } => {
+                    fevm_create(client, args, contract, constructor_args).await
+                }
+                RpcFevmCommands::Invoke { args: FevmArgs { contract, method, method_args }} => {
+                    fevm_invoke(client, args, contract, method, method_args).await
+                }
+                RpcFevmCommands::Call { args: FevmArgs { contract, method, method_args }, height} => {
+                    let height = Height::try_from(height)?;
+                    fevm_call(client, args, contract, method, method_args, height).await
+                }
+                RpcFevmCommands::EstimateGas { args: FevmArgs { contract, method, method_args }, height} => {
+                    let height = Height::try_from(height)?;
+                    fevm_estimate_gas(client, args, contract, method, method_args, height).await
+                }
+            }
         }
-        RpcFevmCommands::Invoke { args: FevmArgs { contract, method, method_args }} => {
-            fevm_invoke(client, args, contract, method, method_args).await
-        }
-        RpcFevmCommands::Call { args: FevmArgs { contract, method, method_args }, height} => {
-            let height = Height::try_from(height)?;
-            fevm_call(client, args, contract, method, method_args, height).await
-        }
-        RpcFevmCommands::EstimateGas { args: FevmArgs { contract, method, method_args }, height} => {
-            let height = Height::try_from(height)?;
-            fevm_estimate_gas(client, args, contract, method, method_args, height).await
-        }
-      }
     }
-  }
 }
 
 /// Run an ABCI query and print the results on STDOUT.
@@ -171,6 +175,18 @@ async fn transaction(
             })
         },
         |data| serde_json::Value::String(hex::encode(data)),
+    )
+    .await
+}
+
+async fn query_read(client: FendermintClient, args: TransArgs) -> anyhow::Result<()> {
+    broadcast_and_print(
+        client,
+        args,
+        |mut client, value, gas_params| {
+            Box::pin(async move { client.query_read(value, gas_params).await })
+        },
+        query_return_to_json,
     )
     .await
 }
@@ -303,6 +319,10 @@ fn create_return_to_json(ret: CreateReturn) -> serde_json::Value {
         "delegated_address": ret.delegated_address().to_string(),
         "robust_address": ret.robust_address.map(|a| a.to_string())
     })
+}
+
+fn query_return_to_json(ret: QueryReturn) -> serde_json::Value {
+    json!({ "db": ret.ret })
 }
 
 pub enum BroadcastResponse<T> {

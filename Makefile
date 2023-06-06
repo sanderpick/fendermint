@@ -62,14 +62,4 @@ docker-build: $(BUILTIN_ACTORS_BUNDLE) $(FENDERMINT_CODE)
 actor-bundle: $(BUILTIN_ACTORS_BUNDLE)
 
 $(BUILTIN_ACTORS_BUNDLE): $(BUILTIN_ACTORS_CODE)
-	if [ ! -d $(BUILTIN_ACTORS_DIR) ]; then \
-		mkdir -p $(BUILTIN_ACTORS_DIR) && \
-		cd $(BUILTIN_ACTORS_DIR) && \
-		cd .. && \
-		git clone https://github.com/filecoin-project/builtin-actors.git; \
-	fi
-	cd $(BUILTIN_ACTORS_DIR) && \
-	git checkout next && \
-	git pull && \
-	rustup target add wasm32-unknown-unknown && \
-	cargo run --release -- -o output/$(shell basename $@)
+	cd $(BUILTIN_ACTORS_DIR) && cargo run --release -- -o output/$(shell basename $@)

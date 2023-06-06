@@ -18,6 +18,8 @@ tendermint = { workspace = true }
 tendermint-rpc = { workspace = true }
 tendermint-proto = { workspace = true }
 tracing = { workspace = true }
+num-traits = "0.2"
+serde_ipld_dagcbor = "0.3.0"
 
 cid = { workspace = true }
 fvm_ipld_encoding = { workspace = true }

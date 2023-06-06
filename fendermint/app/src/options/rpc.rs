@@ -64,6 +64,10 @@ pub enum RpcCommands {
         #[command(flatten)]
         args: TransArgs,
     },
+    Tableland {
+        #[command(flatten)]
+        args: TransArgs,
+    },
     /// Subcommands related to FEVM.
     Fevm {
         #[command(subcommand)]

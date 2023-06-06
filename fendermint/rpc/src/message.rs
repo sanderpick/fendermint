@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::Context;
 use base64::Engine;
 use bytes::Bytes;
-use fendermint_vm_actor_interface::{eam, evm};
+use fendermint_vm_actor_interface::{eam, evm, tableland};
 use fendermint_vm_message::{chain::ChainMessage, signed::SignedMessage};
 use fvm_ipld_encoding::{BytesSer, RawBytes};
 use fvm_shared::{
@@ -96,6 +96,24 @@ impl MessageFactory {
         let signed = SignedMessage::new_secp256k1(message, &self.sk, &self.chain_id)?;
         let chain = ChainMessage::Signed(Box::new(signed));
         Ok(chain)
+    }
+
+    pub fn query_read(
+        &mut self,
+        value: TokenAmount,
+        gas_params: GasParams,
+    ) -> anyhow::Result<ChainMessage> {
+        // println!("{}", query::QUERY_ACTOR_ADDR);
+        // println!("{}", query::Method::Query as u64);
+        // println!("{:?}", gas_params);
+        let message = self.transaction(
+            tableland::QUERY_ACTOR_ADDR,
+            tableland::Method::Query as u64,
+            RawBytes::default(),
+            value,
+            gas_params,
+        )?;
+        Ok(message)
     }
 
     /// Deploy a FEVM contract.
