@@ -98,18 +98,34 @@ impl MessageFactory {
         Ok(chain)
     }
 
-    pub fn query_read(
+    pub fn tableland_execute(
         &mut self,
+        stmts: Vec<String>,
         value: TokenAmount,
         gas_params: GasParams,
     ) -> anyhow::Result<ChainMessage> {
-        // println!("{}", query::QUERY_ACTOR_ADDR);
-        // println!("{}", query::Method::Query as u64);
-        // println!("{:?}", gas_params);
+        let params = RawBytes::serialize(&stmts)?;
         let message = self.transaction(
-            tableland::QUERY_ACTOR_ADDR,
+            tableland::TABLELAND_ACTOR_ADDR,
+            tableland::Method::Execute as u64,
+            params,
+            value,
+            gas_params,
+        )?;
+        Ok(message)
+    }
+
+    pub fn tableland_query(
+        &mut self,
+        stmt: String,
+        value: TokenAmount,
+        gas_params: GasParams,
+    ) -> anyhow::Result<ChainMessage> {
+        let params = RawBytes::serialize(&stmt)?;
+        let message = self.transaction(
+            tableland::TABLELAND_ACTOR_ADDR,
             tableland::Method::Query as u64,
-            RawBytes::default(),
+            params,
             value,
             gas_params,
         )?;

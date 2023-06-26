@@ -13,12 +13,12 @@ anyhow = { workspace = true }
 paste = { workspace = true }
 serde = { workspace = true }
 serde_tuple = { workspace = true }
-
 cid = { workspace = true }
 fvm_shared = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
 fvm_ipld_hamt = { workspace = true }
 fvm_ipld_blockstore = { workspace = true }
+fil_actor_tableland_interface = { path = "../../../../builtin-actors/actors/tableland/interface" }
 
 # The following is disabled so its dependency on an earlier version of fvm_shared doesn't
 # stop us from using the latest version of the FVM. It can be re-enabled if there are more

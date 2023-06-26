@@ -28,10 +28,12 @@ use tendermint_rpc::HttpClient;
 use fendermint_rpc::message::{GasParams, MessageFactory};
 use fendermint_rpc::{client::FendermintClient, query::QueryClient};
 use fendermint_vm_actor_interface::eam::{self, CreateReturn};
-use fendermint_vm_actor_interface::tableland::QueryReturn;
+use fendermint_vm_actor_interface::tableland::{ExecuteReturn, QueryReturn};
 
 use crate::cmd;
-use crate::options::rpc::{BroadcastMode, FevmArgs, RpcFevmCommands, TransArgs};
+use crate::options::rpc::{
+    BroadcastMode, FevmArgs, RpcFevmCommands, RpcTablelandCommands, TransArgs,
+};
 use crate::{
     cmd::to_b64,
     options::rpc::{RpcArgs, RpcCommands, RpcQueryCommands},
@@ -53,8 +55,13 @@ cmd! {
             RpcCommands::Transaction { args, to, method_number, params } => {
                 transaction(client, args, to, method_number, params.clone()).await
             },
-            RpcCommands::Tableland { args } => {
-                query_read(client, args).await
+            RpcCommands::Tableland { args, command } => match command {
+                RpcTablelandCommands::Execute { statement } => {
+                    tableland_execute(client, args, statement).await
+                }
+                RpcTablelandCommands::Query { statement } => {
+                    tableland_query(client, args, statement).await
+                }
             },
             RpcCommands::Fevm { args, command } => match command {
                 RpcFevmCommands::Create { contract, constructor_args } => {
@@ -179,12 +186,32 @@ async fn transaction(
     .await
 }
 
-async fn query_read(client: FendermintClient, args: TransArgs) -> anyhow::Result<()> {
+async fn tableland_execute(
+    client: FendermintClient,
+    args: TransArgs,
+    stmts: Vec<String>,
+) -> anyhow::Result<()> {
     broadcast_and_print(
         client,
         args,
         |mut client, value, gas_params| {
-            Box::pin(async move { client.query_read(value, gas_params).await })
+            Box::pin(async move { client.tableland_execute(stmts, value, gas_params).await })
+        },
+        execute_return_to_json,
+    )
+    .await
+}
+
+async fn tableland_query(
+    client: FendermintClient,
+    args: TransArgs,
+    stmt: String,
+) -> anyhow::Result<()> {
+    broadcast_and_print(
+        client,
+        args,
+        |mut client, value, gas_params| {
+            Box::pin(async move { client.tableland_query(stmt, value, gas_params).await })
         },
         query_return_to_json,
     )
@@ -321,8 +348,12 @@ fn create_return_to_json(ret: CreateReturn) -> serde_json::Value {
     })
 }
 
+fn execute_return_to_json(ret: ExecuteReturn) -> serde_json::Value {
+    json!(ret)
+}
+
 fn query_return_to_json(ret: QueryReturn) -> serde_json::Value {
-    json!({ "db": ret.ret })
+    json!(ret)
 }
 
 pub enum BroadcastResponse<T> {

@@ -675,6 +675,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "castaway"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a17ed5635fc8536268e5d4de1e22e81ac34419e5f052d4d51f4e01dcc263fcc"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2130,6 +2139,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2268,10 +2283,8 @@ dependencies = [
  "hex",
  "lazy_static",
  "libsecp256k1",
- "num-traits",
  "prost",
  "serde",
- "serde_ipld_dagcbor 0.3.0",
  "tendermint",
  "tendermint-proto",
  "tendermint-rpc",
@@ -2316,6 +2329,7 @@ dependencies = [
  "anyhow",
  "cid",
  "fendermint_vm_genesis",
+ "fil_actor_tableland_interface",
  "fvm_ipld_blockstore",
  "fvm_ipld_encoding",
  "fvm_ipld_hamt",
@@ -2348,7 +2362,7 @@ dependencies = [
  "fvm_shared",
  "num-traits",
  "serde",
- "serde_with",
+ "serde_with 2.3.3",
 ]
 
 [[package]]
@@ -2370,7 +2384,7 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
- "serde_with",
+ "serde_with 2.3.3",
 ]
 
 [[package]]
@@ -2389,7 +2403,6 @@ dependencies = [
  "fvm_ipld_car",
  "fvm_ipld_encoding",
  "fvm_shared",
- "multihash",
  "num-traits",
  "quickcheck 1.0.3",
  "serde",
@@ -2417,7 +2430,7 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_tuple",
- "serde_with",
+ "serde_with 2.3.3",
  "thiserror",
 ]
 
@@ -2440,6 +2453,55 @@ checksum = "ded41244b729663b1e574f1b4fb731469f69f79c17667b5d776b16cda0479449"
 dependencies = [
  "rand_core 0.6.4",
  "subtle",
+]
+
+[[package]]
+name = "fil_actor_tableland_interface"
+version = "11.0.0"
+dependencies = [
+ "cid",
+ "fil_actors_runtime",
+ "fvm_ipld_blockstore",
+ "fvm_ipld_encoding",
+ "fvm_shared",
+ "multihash",
+ "num-derive",
+ "num-traits",
+ "rusqlite",
+ "serde",
+ "serde_tuple",
+ "serde_with 3.0.0",
+ "sqlite-vfs",
+ "thiserror",
+]
+
+[[package]]
+name = "fil_actors_runtime"
+version = "11.0.0"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "castaway",
+ "cid",
+ "fvm_ipld_amt",
+ "fvm_ipld_bitfield",
+ "fvm_ipld_blockstore",
+ "fvm_ipld_encoding",
+ "fvm_ipld_hamt",
+ "fvm_shared",
+ "itertools 0.10.5",
+ "log",
+ "multihash",
+ "num",
+ "num-derive",
+ "num-traits",
+ "paste",
+ "regex",
+ "serde",
+ "serde_repr",
+ "sha2 0.10.6",
+ "thiserror",
+ "unsigned-varint",
 ]
 
 [[package]]
@@ -2741,6 +2803,8 @@ dependencies = [
 [[package]]
 name = "fvm"
 version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28a482a7a27dc5da0824d2eb61ccc044cae3ce5a05a743237b9a8a53793163d4"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -2787,6 +2851,8 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_amt"
 version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e84f16d6927ce342ef86bd20fcc2d5bd498ed33ae6d7a22fea7a1b453488ec88"
 dependencies = [
  "anyhow",
  "cid",
@@ -2799,8 +2865,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "fvm_ipld_bitfield"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1950291f40d2d1047eb0a4568f7ef6d5b4973452dcef012dffb1957fe483ff7"
+dependencies = [
+ "fvm_ipld_encoding",
+ "serde",
+ "thiserror",
+ "unsigned-varint",
+]
+
+[[package]]
 name = "fvm_ipld_blockstore"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fee8c75be2b58943e1a9755802d34d4c3934f6ea151b6be192ff98f644e515bd"
 dependencies = [
  "anyhow",
  "cid",
@@ -2810,6 +2890,8 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_car"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c60423568393a284de6d7c342cd664690611f27d223eb78629fa568ddd4e7951"
 dependencies = [
  "cid",
  "futures",
@@ -2823,13 +2905,15 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_encoding"
 version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0816a2a6df4853de08a723d261110d56a121aa313bc570fe9d248f0a4bc5288"
 dependencies = [
  "anyhow",
  "cid",
  "fvm_ipld_blockstore",
  "multihash",
  "serde",
- "serde_ipld_dagcbor 0.2.2",
+ "serde_ipld_dagcbor",
  "serde_repr",
  "serde_tuple",
  "thiserror",
@@ -2838,6 +2922,8 @@ dependencies = [
 [[package]]
 name = "fvm_ipld_hamt"
 version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c942494dde990aeac314311bde34c787be99cab7d0836397a75556cbaa2c3e7"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -2856,6 +2942,8 @@ dependencies = [
 [[package]]
 name = "fvm_shared"
 version = "3.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ad76f06f7d59215844900d018ffc5c863a370afab9c329bae290305722f8d60"
 dependencies = [
  "anyhow",
  "arbitrary",
@@ -2999,6 +3087,15 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
+dependencies = [
+ "ahash 0.7.6",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
@@ -3022,6 +3119,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2bca93b15ea5a746f220e56587f71e73c6165eab783df9e26590069953e3c30"
 dependencies = [
  "fxhash",
+]
+
+[[package]]
+name = "hashlink"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7249a3129cbc1ffccd74857f81464a323a152173cdb134e0fd81bc803b29facf"
+dependencies = [
+ "hashbrown 0.11.2",
 ]
 
 [[package]]
@@ -3676,6 +3782,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "libsqlite3-sys"
+version = "0.23.2"
+source = "git+https://github.com/sanderpick/rusqlite.git?branch=wasm32-unknown-unknown#d73d2ef9e6f27d3990840922517214a0e2301c96"
+dependencies = [
+ "cc",
+ "getrandom 0.2.9",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
 name = "libz-sys"
 version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3944,6 +4061,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "num"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
+dependencies = [
+ "num-bigint",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3953,6 +4084,17 @@ dependencies = [
  "num-integer",
  "num-traits",
  "quickcheck 1.0.3",
+ "serde",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02e0d21255c828d6f128a1e41534206671e8c3ea0c62f32291e808dc82cff17d"
+dependencies = [
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3974,6 +4116,30 @@ checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
 dependencies = [
  "autocfg",
  "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d03e6c028c5dc5cac6e2dec0efda81fc887605bb3d884578bb6d6bf7514e252"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0638a1c9d0a3c0914158145bc76cff373a75a627e6ecbfb71cbe6f453a5a19b0"
+dependencies = [
+ "autocfg",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -4942,6 +5108,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusqlite"
+version = "0.26.3"
+source = "git+https://github.com/sanderpick/rusqlite.git?branch=wasm32-unknown-unknown#d73d2ef9e6f27d3990840922517214a0e2301c96"
+dependencies = [
+ "bitflags",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
+ "memchr",
+ "smallvec",
+]
+
+[[package]]
 name = "rust-ini"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5298,18 +5478,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_ipld_dagcbor"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2433e94ffb5977e67afbd75733abd6ada1c4f497125894a8c89b3fdc5fd6a058"
-dependencies = [
- "cbor4ii",
- "cid",
- "scopeguard",
- "serde",
-]
-
-[[package]]
 name = "serde_json"
 version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5394,7 +5562,23 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_json",
- "serde_with_macros",
+ "serde_with_macros 2.3.3",
+ "time",
+]
+
+[[package]]
+name = "serde_with"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f02d8aa6e3c385bf084924f660ce2a3a6bd333ba55b35e8590b321f35d88513"
+dependencies = [
+ "base64 0.21.0",
+ "chrono",
+ "hex",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "serde_with_macros 3.0.0",
  "time",
 ]
 
@@ -5403,6 +5587,18 @@ name = "serde_with_macros"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "881b6f881b17d13214e5d494c939ebab463d01264ce1811e9d4ac3a882e7695f"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.16",
+]
+
+[[package]]
+name = "serde_with_macros"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edc7d5d3932fb12ce722ee5e64dd38c504efba37567f0c402f6ca728c3b8b070"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5622,6 +5818,14 @@ checksum = "9d1e996ef02c474957d681f1b05213dfb0abab947b446a62d37770b23500184a"
 dependencies = [
  "base64ct",
  "der 0.7.6",
+]
+
+[[package]]
+name = "sqlite-vfs"
+version = "0.2.0"
+source = "git+https://github.com/sanderpick/sqlite-vfs.git?branch=wasm32-unknown-unknown#404d2c46649f24ea6ed226d2dc0bcd9e3798c20a"
+dependencies = [
+ "log",
 ]
 
 [[package]]

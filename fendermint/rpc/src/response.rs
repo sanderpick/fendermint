@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Context};
 use base64::Engine;
 use bytes::Bytes;
+use fendermint_vm_actor_interface::tableland::ExecuteReturn;
 use fendermint_vm_actor_interface::{eam::CreateReturn, tableland::QueryReturn};
 use fvm_ipld_encoding::BytesDe;
 use tendermint::abci::response::DeliverTx;
@@ -32,14 +33,16 @@ pub fn decode_bytes(deliver_tx: &DeliverTx) -> anyhow::Result<Vec<u8>> {
     decode_data(&deliver_tx.data)
 }
 
-pub fn decode_query_read(deliver_tx: &DeliverTx) -> anyhow::Result<QueryReturn> {
+pub fn decode_tableland_execute(deliver_tx: &DeliverTx) -> anyhow::Result<ExecuteReturn> {
     let data = decode_data(&deliver_tx.data)?;
-    println!("{}", data.len());
-    let foo = serde_ipld_dagcbor::from_slice::<QueryReturn>(data.as_slice());
-    Ok(foo.unwrap())
+    fvm_ipld_encoding::from_slice::<ExecuteReturn>(&data)
+        .map_err(|e| anyhow!("error parsing as ExecuteReturn: {e}"))
+}
 
-    // fvm_ipld_encoding::from_slice::<QueryReturn>(&data)
-    //     .map_err(|e| anyhow!("error parsing as QueryReturn: {e}"))
+pub fn decode_tableland_query(deliver_tx: &DeliverTx) -> anyhow::Result<QueryReturn> {
+    let data = decode_data(&deliver_tx.data)?;
+    fvm_ipld_encoding::from_slice::<QueryReturn>(&data)
+        .map_err(|e| anyhow!("error parsing as QueryReturn: {e}"))
 }
 
 /// Parse what Tendermint returns in the `data` field of [`DeliverTx`] as [`CreateReturn`].

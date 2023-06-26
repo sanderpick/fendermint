@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0, MIT
 
 use async_trait::async_trait;
+use fendermint_vm_actor_interface::tableland::SQLITE_PAGE_SIZE;
 use fendermint_vm_actor_interface::{cron, eam, init, system, tableland};
 use fendermint_vm_core::{chainid, Timestamp};
 use fendermint_vm_genesis::{ActorMeta, Genesis, Validator};
@@ -24,9 +25,6 @@ pub struct FvmGenesisOutput {
     pub circ_supply: TokenAmount,
     pub validators: Vec<Validator>,
 }
-
-static TABLELAND_STATE: &[u8] = include_bytes!("./test.db");
-const SQLITE_PAGE_SIZE: usize = 4096;
 
 #[async_trait]
 impl<DB> GenesisInterpreter for FvmMessageInterpreter<DB>
@@ -121,7 +119,7 @@ where
         )?;
 
         // Tableland actor
-        let db = tableland::DB::new(state.store(), TABLELAND_STATE, SQLITE_PAGE_SIZE);
+        let db = tableland::DB::new(state.store(), &[], SQLITE_PAGE_SIZE)?;
         let tableland_state = tableland::State { db };
         state.create_actor(
             tableland::TABLELAND_ACTOR_CODE_ID,
