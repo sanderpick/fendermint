@@ -52,9 +52,8 @@ cmd! {
                     .with(warp::cors().allow_any_origin())
                     .recover(handle_rejection);
 
-                let addr = format!("{}:{}", "127.0.0.1", 10001);
-                let saddr: SocketAddr = addr.parse().expect("Unable to parse server address");
-                println!("Server started at {}", addr);
+                let saddr: SocketAddr = self.bind.parse().expect("Unable to parse server address");
+                println!("Server started at {}", self.bind);
                 Ok(warp::serve(router).run(saddr).await)
             },
         }
