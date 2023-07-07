@@ -67,6 +67,7 @@ pub fn http_client(url: Url, proxy_url: Option<Url>) -> anyhow::Result<HttpClien
 }
 
 /// Unauthenticated Fendermint client.
+#[derive(Debug, Clone)]
 pub struct FendermintClient<C = HttpClient> {
     inner: C,
 }

@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use crate::options::proxy::ProxyArgs;
 use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::settings::expand_tilde;
@@ -12,6 +13,7 @@ use self::{eth::EthArgs, genesis::GenesisArgs, key::KeyArgs, rpc::RpcArgs, run::
 pub mod eth;
 pub mod genesis;
 pub mod key;
+pub mod proxy;
 pub mod rpc;
 pub mod run;
 
@@ -82,4 +84,6 @@ pub enum Commands {
     Rpc(RpcArgs),
     /// Subcommands related to the Ethereum API facade.
     Eth(EthArgs),
+    /// Proxy for tableland demos
+    Proxy(ProxyArgs),
 }

@@ -48,6 +48,8 @@ fvm_ipld_car = { workspace = true }
 fvm_ipld_encoding = { workspace = true }
 fvm_shared = { workspace = true }
 
+warp = "0.3"
+
 [dev-dependencies]
 tempfile = { workspace = true }
 quickcheck = { workspace = true }

@@ -91,19 +91,6 @@ pub enum RpcTablelandCommands {
     },
 }
 
-#[derive(Args, Debug, Clone)]
-pub struct TablelandArgs {
-    /// Either the actor ID based or the EAM delegated address of the contract to call.
-    #[arg(long, short)]
-    pub contract: Address,
-    /// ABI encoded method hash, expected to be in hexadecimal format.
-    #[arg(long, short, value_parser = parse_bytes)]
-    pub method: Bytes,
-    /// ABI encoded call arguments passed to the EVM, expected to be in hexadecimal format.
-    #[arg(long, short, value_parser = parse_bytes, default_value = "")]
-    pub method_args: Bytes,
-}
-
 #[derive(Subcommand, Debug, Clone)]
 pub enum RpcQueryCommands {
     /// Get raw IPLD content; print it as base64 string.
