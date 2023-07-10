@@ -22,7 +22,7 @@ use tendermint::abci::response::DeliverTx;
 use tendermint_rpc::HttpClient;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
-const MAX_BODY_LENGTH: u64 = 1024;
+const MAX_BODY_LENGTH: u64 = 100 * 1024 * 1024;
 
 cmd! {
     ProxyArgs(self) {
@@ -83,7 +83,6 @@ pub async fn execute(
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
     args.sequence = *nonce.lock().unwrap();
-    *nonce.lock().unwrap() += 1;
 
     let parts = String::from_utf8_lossy(&body);
     let stmts = parts
@@ -91,15 +90,16 @@ pub async fn execute(
         .split(";")
         .map(|p| p.to_string())
         .collect::<Vec<String>>();
-    println!("nonce: {}; query: {:?}", args.sequence, stmts);
+    println!("nonce: {}; queries: {:?}", args.sequence, stmts);
 
     let res = tableland_execute(client, args, stmts).await.map_err(|e| {
         warp::reject::custom(ErrorMessage::new(
             StatusCode::BAD_REQUEST.as_u16(),
-            format!("query error: {}", e),
+            format!("execute error: {}", e),
         ))
     })?;
 
+    *nonce.lock().unwrap() += 1;
     Ok(warp::reply::json(&res))
 }
 
@@ -110,7 +110,6 @@ pub async fn query(
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
     args.sequence = *nonce.lock().unwrap();
-    *nonce.lock().unwrap() += 1;
 
     let stmt = String::from_utf8_lossy(&body);
     println!("nonce: {}; query: {}", args.sequence, stmt);
@@ -124,6 +123,7 @@ pub async fn query(
             ))
         })?;
 
+    *nonce.lock().unwrap() += 1;
     Ok(warp::reply::json(&res))
 }
 
