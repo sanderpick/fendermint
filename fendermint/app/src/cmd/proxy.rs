@@ -16,10 +16,11 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr};
 use tendermint::abci::response::DeliverTx;
 use tendermint_rpc::HttpClient;
+use tokio::sync::Mutex;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 const MAX_BODY_LENGTH: u64 = 100 * 1024 * 1024;
@@ -82,7 +83,8 @@ pub async fn execute(
     mut args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    args.sequence = *nonce.lock().unwrap();
+    let mut nonce_lck = nonce.lock().await;
+    args.sequence = *nonce_lck;
 
     let parts = String::from_utf8_lossy(&body);
     let stmts = parts
@@ -99,7 +101,7 @@ pub async fn execute(
         ))
     })?;
 
-    *nonce.lock().unwrap() += 1;
+    *nonce_lck += 1;
     Ok(warp::reply::json(&res))
 }
 
@@ -109,7 +111,8 @@ pub async fn query(
     mut args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    args.sequence = *nonce.lock().unwrap();
+    let mut nonce_lck = nonce.lock().await;
+    args.sequence = *nonce_lck;
 
     let stmt = String::from_utf8_lossy(&body);
     println!("nonce: {}; query: {}", args.sequence, stmt);
@@ -123,7 +126,7 @@ pub async fn query(
             ))
         })?;
 
-    *nonce.lock().unwrap() += 1;
+    *nonce_lck += 1;
     Ok(warp::reply::json(&res))
 }
 
