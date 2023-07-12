@@ -3,7 +3,8 @@ import requests
 
 sql = "countries.sql"
 batch_size = 10
-host = "http://34.125.163.42:26650"
+# host = "http://34.125.163.42:26650"
+host = "http://127.0.0.1:26650"
 
 with open(sql) as file:
     lines = file.readlines()

@@ -178,7 +178,7 @@ fn into_tendermint(genesis_file: &PathBuf, args: &GenesisIntoTendermintArgs) -> 
             block: tendermint::block::Size {
                 max_bytes: args.block_max_bytes,
                 max_gas: -1,
-                time_iota_ms: tendermint::block::Size::default_time_iota_ms(),
+                time_iota_ms: 50, //tendermint::block::Size::default_time_iota_ms(),
             },
             evidence: tendermint::evidence::Params {
                 max_age_num_blocks: 100000,

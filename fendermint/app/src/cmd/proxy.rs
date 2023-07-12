@@ -92,7 +92,7 @@ pub async fn execute(
         .split(";")
         .map(|p| p.to_string())
         .collect::<Vec<String>>();
-    println!("nonce: {}; queries: {:?}", args.sequence, stmts);
+    println!("nonce: {}", args.sequence);
 
     let res = tableland_execute(client, args, stmts).await.map_err(|e| {
         warp::reject::custom(ErrorMessage::new(
@@ -115,7 +115,7 @@ pub async fn query(
     args.sequence = *nonce_lck;
 
     let stmt = String::from_utf8_lossy(&body);
-    println!("nonce: {}; query: {}", args.sequence, stmt);
+    println!("nonce: {}", args.sequence);
 
     let res = tableland_query(client, args, stmt.to_string())
         .await
@@ -154,10 +154,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
         )
     } else {
         eprintln!("unhandled error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal Server Error".to_string(),
-        )
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", err))
     };
 
     let json = warp::reply::json(&ErrorMessage::new(code.as_u16(), message));
