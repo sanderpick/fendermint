@@ -31,6 +31,8 @@ cmd! {
         match self.command.clone() {
             ProxyCommands::Start { args } => {
                 let nonce = Arc::new(Mutex::new(args.sequence));
+                let health_route = warp::path!("health")
+                    .and(warp::get()).and_then(health);
                 let execute_route = warp::path!("v1" / "execute")
                     .and(warp::post())
                     .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
@@ -48,7 +50,8 @@ cmd! {
                     .and(warp::body::bytes())
                     .and_then(query);
 
-                let router = execute_route
+                let router = health_route
+                    .or(execute_route)
                     .or(query_route)
                     .with(warp::cors().allow_any_origin())
                     .recover(handle_rejection);
@@ -75,6 +78,10 @@ fn with_nonce(
 
 fn with_args(args: TransArgs) -> impl Filter<Extract = (TransArgs,), Error = Infallible> + Clone {
     warp::any().map(move || args.clone())
+}
+
+pub async fn health() -> Result<impl Reply, Rejection> {
+    Ok(warp::reply::reply())
 }
 
 pub async fn execute(
