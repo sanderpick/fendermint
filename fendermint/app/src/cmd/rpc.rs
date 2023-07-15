@@ -62,6 +62,10 @@ cmd! {
                 RpcTablelandCommands::Query { statement } => {
                     tableland_query(client, args, statement).await
                 }
+                RpcTablelandCommands::QueryCall { statement, height } => {
+                    let height = Height::try_from(height)?;
+                    tableland_query_call(client, args, statement, height).await
+                }
             },
             RpcCommands::Fevm { args, command } => match command {
                 RpcFevmCommands::Create { contract, constructor_args } => {
@@ -216,6 +220,26 @@ async fn tableland_query(
         query_return_to_json,
     )
     .await
+}
+
+async fn tableland_query_call(
+    client: FendermintClient,
+    args: TransArgs,
+    stmt: String,
+    height: Height,
+) -> anyhow::Result<()> {
+    let mut client = TransClient::new(client, &args)?;
+    let gas_params = gas_params(&args);
+    let value = args.value;
+
+    let res = client
+        .inner
+        .tableland_query_call(stmt, value, gas_params, Some(height))
+        .await?;
+
+    let json = json!({"response": res.response, "return_data": res.return_data});
+
+    print_json(&json)
 }
 
 /// Deploy an EVM contract through RPC and print the response to STDOUT as JSON.

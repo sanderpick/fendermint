@@ -132,6 +132,26 @@ impl MessageFactory {
         Ok(message)
     }
 
+    pub fn tableland_query_call(
+        &mut self,
+        stmt: String,
+        value: TokenAmount,
+        gas_params: GasParams,
+    ) -> anyhow::Result<Message> {
+        let msg = self.tableland_query(stmt, value, gas_params)?;
+
+        let msg = if let ChainMessage::Signed(signed) = msg {
+            signed.into_message()
+        } else {
+            panic!("unexpected message type: {msg:?}");
+        };
+
+        // Roll back the sequence, we don't really want to invoke anything.
+        self.set_sequence(msg.sequence);
+
+        Ok(msg)
+    }
+
     /// Deploy a FEVM contract.
     pub fn fevm_create(
         &mut self,

@@ -139,6 +139,35 @@ pub trait TxClient<M: BroadcastMode = TxCommit>: BoundClient + Send + Sync {
 /// Convenience trait to call FEVM methods in read-only mode, without doing a transaction.
 #[async_trait]
 pub trait CallClient: QueryClient + BoundClient + Send + Sync {
+    async fn tableland_query_call(
+        &mut self,
+        stmt: String,
+        value: TokenAmount,
+        gas_params: GasParams,
+        height: Option<Height>,
+    ) -> anyhow::Result<CallResponse<QueryReturn>> {
+        let msg = self
+            .message_factory_mut()
+            .tableland_query_call(stmt, value, gas_params)?;
+
+        let response = self.call(msg, height).await?;
+
+        let return_data = if response.value.code.is_err() {
+            None
+        } else {
+            let return_data = decode_tableland_query(&response.value)
+                .context("error decoding data from deliver_tx in query")?;
+            Some(return_data)
+        };
+
+        let response = CallResponse {
+            response,
+            return_data,
+        };
+
+        Ok(response)
+    }
+
     /// Call a method on a FEVM contract without including a transaction on the blockchain.
     async fn fevm_call(
         &mut self,

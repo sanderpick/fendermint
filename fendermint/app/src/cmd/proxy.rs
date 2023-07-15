@@ -6,9 +6,10 @@ use bytes::Bytes;
 use fendermint_rpc::client::{BoundFendermintClient, FendermintClient};
 use fendermint_rpc::message::{GasParams, MessageFactory};
 use fendermint_rpc::tx::{
-    AsyncResponse, BoundClient, CommitResponse, SyncResponse, TxAsync, TxClient, TxCommit, TxSync,
+    AsyncResponse, BoundClient, CallClient, CommitResponse, SyncResponse, TxAsync, TxClient,
+    TxCommit, TxSync,
 };
-use fendermint_vm_actor_interface::tableland::{ExecuteReturn, QueryReturn};
+use fendermint_vm_actor_interface::tableland::ExecuteReturn;
 use fendermint_vm_core::chainid;
 use fendermint_vm_message::chain::ChainMessage;
 use fvm_shared::econ::TokenAmount;
@@ -45,7 +46,6 @@ cmd! {
                     .and(warp::post())
                     .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
                     .and(with_client(client))
-                    .and(with_nonce(nonce))
                     .and(with_args(args))
                     .and(warp::body::bytes())
                     .and_then(query);
@@ -114,15 +114,10 @@ pub async fn execute(
 
 pub async fn query(
     client: FendermintClient,
-    nonce: Arc<Mutex<u64>>,
-    mut args: TransArgs,
+    args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    let mut nonce_lck = nonce.lock().await;
-    args.sequence = *nonce_lck;
-
     let stmt = String::from_utf8_lossy(&body);
-    println!("nonce: {}", args.sequence);
 
     let res = tableland_query(client, args, stmt.to_string())
         .await
@@ -133,7 +128,6 @@ pub async fn query(
             ))
         })?;
 
-    *nonce_lck += 1;
     Ok(warp::reply::json(&res))
 }
 
@@ -217,18 +211,18 @@ async fn tableland_execute(
 
 async fn tableland_query(
     client: FendermintClient,
-    args: TransArgs,
+    mut args: TransArgs,
     stmt: String,
 ) -> anyhow::Result<Value> {
-    broadcast(
-        client,
-        args,
-        |mut client, value, gas_params| {
-            Box::pin(async move { client.tableland_query(stmt, value, gas_params).await })
-        },
-        |ret: QueryReturn| json!(ret),
-    )
-    .await
+    args.sequence = 0;
+    let mut client = TransClient::new(client, &args)?;
+    let gas_params = gas_params(&args);
+    let res = client
+        .inner
+        .tableland_query_call(stmt, TokenAmount::default(), gas_params, None)
+        .await?;
+
+    Ok(json!(res.return_data))
 }
 
 pub enum BroadcastResponse<T> {

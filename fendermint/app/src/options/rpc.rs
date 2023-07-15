@@ -89,6 +89,13 @@ pub enum RpcTablelandCommands {
         #[arg(long, short)]
         statement: String,
     },
+    QueryCall {
+        #[arg(long, short)]
+        statement: String,
+        /// Block height to query; 0 means latest.
+        #[arg(long, short = 'b', default_value_t = 0)]
+        height: u64,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -170,7 +177,7 @@ pub struct TransArgs {
     #[arg(long, short)]
     pub secret_key: PathBuf,
     /// Sender account nonce.
-    #[arg(long, short = 'n')]
+    #[arg(long, short = 'n', default_value = "0")]
     pub sequence: u64,
     /// Maximum amount of gas that can be charged.
     #[arg(long, default_value_t = 10_000_000_000)] // Default from ref-fvm testkit.
