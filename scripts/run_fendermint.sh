@@ -2,4 +2,4 @@
 set -eu
 
 rm -rf ~/.fendermint/data/rocksdb
-fendermint --log-level debug run
+fendermint run

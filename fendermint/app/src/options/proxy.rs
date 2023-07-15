@@ -45,12 +45,6 @@ pub struct TransArgs {
     /// Path to the secret key of the sender to sign the transaction.
     #[arg(long, short)]
     pub secret_key: PathBuf,
-    /// Sender account nonce.
-    #[arg(long, short = 'n')]
-    pub sequence: u64,
-    /// Maximum amount of gas that can be charged.
-    #[arg(long, default_value_t = 10_000_000_000)] // Default from ref-fvm testkit.
-    pub gas_limit: u64,
     /// Price of gas.
     ///
     /// Any discrepancy between this and the base fee is paid for

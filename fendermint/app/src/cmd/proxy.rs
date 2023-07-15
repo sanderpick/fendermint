@@ -13,15 +13,13 @@ use fendermint_vm_actor_interface::tableland::ExecuteReturn;
 use fendermint_vm_core::chainid;
 use fendermint_vm_message::chain::ChainMessage;
 use fvm_shared::econ::TokenAmount;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 use std::{convert::Infallible, net::SocketAddr};
 use tendermint::abci::response::DeliverTx;
 use tendermint_rpc::HttpClient;
-use tokio::sync::Mutex;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 const MAX_BODY_LENGTH: u64 = 100 * 1024 * 1024;
@@ -31,14 +29,12 @@ cmd! {
         let client = FendermintClient::new_http(self.url.clone(), self.proxy_url.clone())?;
         match self.command.clone() {
             ProxyCommands::Start { args } => {
-                let nonce = Arc::new(Mutex::new(args.sequence));
                 let health_route = warp::path!("health")
                     .and(warp::get()).and_then(health);
                 let execute_route = warp::path!("v1" / "execute")
                     .and(warp::post())
                     .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
                     .and(with_client(client.clone()))
-                    .and(with_nonce(nonce.clone()))
                     .and(with_args(args.clone()))
                     .and(warp::body::bytes())
                     .and_then(execute);
@@ -70,12 +66,6 @@ fn with_client(
     warp::any().map(move || client.clone())
 }
 
-fn with_nonce(
-    nonce: Arc<Mutex<u64>>,
-) -> impl Filter<Extract = (Arc<Mutex<u64>>,), Error = Infallible> + Clone {
-    warp::any().map(move || nonce.clone())
-}
-
 fn with_args(args: TransArgs) -> impl Filter<Extract = (TransArgs,), Error = Infallible> + Clone {
     warp::any().map(move || args.clone())
 }
@@ -84,31 +74,40 @@ pub async fn health() -> Result<impl Reply, Rejection> {
     Ok(warp::reply::reply())
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExecuteRequest {
+    pub stmts: String,
+    pub sequence: u64,
+    pub gas_limit: u64,
+}
+
 pub async fn execute(
     client: FendermintClient,
-    nonce: Arc<Mutex<u64>>,
-    mut args: TransArgs,
+    args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    let mut nonce_lck = nonce.lock().await;
-    args.sequence = *nonce_lck;
-
-    let parts = String::from_utf8_lossy(&body);
-    let stmts = parts
-        .trim_end_matches(";")
-        .split(";")
-        .map(|p| p.to_string())
-        .collect::<Vec<String>>();
-    println!("nonce: {}", args.sequence);
-
-    let res = tableland_execute(client, args, stmts).await.map_err(|e| {
+    let req = serde_json::from_slice::<ExecuteRequest>(&body).map_err(|e| {
         warp::reject::custom(ErrorMessage::new(
             StatusCode::BAD_REQUEST.as_u16(),
             format!("execute error: {}", e),
         ))
     })?;
+    let stmts = req
+        .stmts
+        .trim_end_matches(";")
+        .split(";")
+        .map(|p| p.to_string())
+        .collect::<Vec<String>>();
 
-    *nonce_lck += 1;
+    let res = tableland_execute(client, args, req.sequence, req.gas_limit, stmts)
+        .await
+        .map_err(|e| {
+            warp::reject::custom(ErrorMessage::new(
+                StatusCode::BAD_REQUEST.as_u16(),
+                format!("execute error: {}", e),
+            ))
+        })?;
+
     Ok(warp::reply::json(&res))
 }
 
@@ -168,6 +167,8 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
 async fn broadcast<F, T, G>(
     client: FendermintClient,
     args: TransArgs,
+    sequence: u64,
+    gas_limit: u64,
     f: F,
     g: G,
 ) -> anyhow::Result<Value>
@@ -180,8 +181,8 @@ where
     G: FnOnce(T) -> Value,
     T: Sync + Send,
 {
-    let client = TransClient::new(client, &args)?;
-    let gas_params = gas_params(&args);
+    let client = TransClient::new(client, &args, sequence)?;
+    let gas_params = gas_params(&args, gas_limit);
     let res = f(client, TokenAmount::default(), gas_params).await?;
     Ok(match res {
         BroadcastResponse::Async(res) => json!({"response": res.response}),
@@ -196,11 +197,15 @@ where
 async fn tableland_execute(
     client: FendermintClient,
     args: TransArgs,
+    sequence: u64,
+    gas_limit: u64,
     stmts: Vec<String>,
 ) -> anyhow::Result<Value> {
     broadcast(
         client,
         args,
+        sequence,
+        gas_limit,
         |mut client, value, gas_params| {
             Box::pin(async move { client.tableland_execute(stmts, value, gas_params).await })
         },
@@ -211,12 +216,11 @@ async fn tableland_execute(
 
 async fn tableland_query(
     client: FendermintClient,
-    mut args: TransArgs,
+    args: TransArgs,
     stmt: String,
 ) -> anyhow::Result<Value> {
-    args.sequence = 0;
-    let mut client = TransClient::new(client, &args)?;
-    let gas_params = gas_params(&args);
+    let mut client = TransClient::new(client, &args, 0)?;
+    let gas_params = gas_params(&args, 10000000000);
     let res = client
         .inner
         .tableland_query_call(stmt, TokenAmount::default(), gas_params, None)
@@ -241,10 +245,10 @@ struct TransClient {
 }
 
 impl TransClient {
-    pub fn new(client: FendermintClient, args: &TransArgs) -> anyhow::Result<Self> {
+    pub fn new(client: FendermintClient, args: &TransArgs, sequence: u64) -> anyhow::Result<Self> {
         let sk = read_secret_key(&args.secret_key)?;
         let chain_id = chainid::from_str_hashed(&args.chain_name)?;
-        let mf = MessageFactory::new(sk, args.sequence, chain_id)?;
+        let mf = MessageFactory::new(sk, sequence, chain_id)?;
         let client = client.bind(mf);
         let client = Self {
             inner: client,
@@ -284,9 +288,9 @@ impl TxClient<BroadcastMode> for TransClient {
     }
 }
 
-fn gas_params(args: &TransArgs) -> GasParams {
+fn gas_params(args: &TransArgs, gas_limit: u64) -> GasParams {
     GasParams {
-        gas_limit: args.gas_limit,
+        gas_limit,
         gas_fee_cap: args.gas_fee_cap.clone(),
         gas_premium: args.gas_premium.clone(),
     }
