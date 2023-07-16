@@ -13,12 +13,14 @@ use fendermint_vm_actor_interface::tableland::ExecuteReturn;
 use fendermint_vm_core::chainid;
 use fendermint_vm_message::chain::ChainMessage;
 use fvm_shared::econ::TokenAmount;
+use fvm_shared::BLOCK_GAS_LIMIT;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
 use std::{convert::Infallible, net::SocketAddr};
 use tendermint::abci::response::DeliverTx;
+use tendermint::block::Height;
 use tendermint_rpc::HttpClient;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
@@ -78,6 +80,7 @@ pub async fn health() -> Result<impl Reply, Rejection> {
 pub struct ExecuteRequest {
     pub stmts: String,
     pub sequence: u64,
+    #[serde(default = "block_gas_limit")]
     pub gas_limit: u64,
 }
 
@@ -86,7 +89,7 @@ pub async fn execute(
     args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    let req = serde_json::from_slice::<ExecuteRequest>(&body).map_err(|e| {
+    let mut req = serde_json::from_slice::<ExecuteRequest>(&body).map_err(|e| {
         warp::reject::custom(ErrorMessage::new(
             StatusCode::BAD_REQUEST.as_u16(),
             format!("execute error: {}", e),
@@ -98,6 +101,9 @@ pub async fn execute(
         .split(";")
         .map(|p| p.to_string())
         .collect::<Vec<String>>();
+    if req.gas_limit == 0 {
+        req.gas_limit = BLOCK_GAS_LIMIT
+    }
 
     let res = tableland_execute(client, args, req.sequence, req.gas_limit, stmts)
         .await
@@ -111,14 +117,31 @@ pub async fn execute(
     Ok(warp::reply::json(&res))
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryRequest {
+    pub stmt: String,
+    #[serde(default)]
+    pub height: u64,
+    #[serde(default = "block_gas_limit")]
+    pub gas_limit: u64,
+}
+
 pub async fn query(
     client: FendermintClient,
     args: TransArgs,
     body: Bytes,
 ) -> Result<impl Reply, Rejection> {
-    let stmt = String::from_utf8_lossy(&body);
+    let mut req = serde_json::from_slice::<QueryRequest>(&body).map_err(|e| {
+        warp::reject::custom(ErrorMessage::new(
+            StatusCode::BAD_REQUEST.as_u16(),
+            format!("query error: {}", e),
+        ))
+    })?;
+    if req.gas_limit == 0 {
+        req.gas_limit = BLOCK_GAS_LIMIT
+    }
 
-    let res = tableland_query(client, args, stmt.to_string())
+    let res = tableland_query(client, args, req.height, req.gas_limit, req.stmt)
         .await
         .map_err(|e| {
             warp::reject::custom(ErrorMessage::new(
@@ -217,13 +240,20 @@ async fn tableland_execute(
 async fn tableland_query(
     client: FendermintClient,
     args: TransArgs,
+    height: u64,
+    gas_limit: u64,
     stmt: String,
 ) -> anyhow::Result<Value> {
     let mut client = TransClient::new(client, &args, 0)?;
-    let gas_params = gas_params(&args, 10000000000);
+    let gas_params = gas_params(&args, gas_limit);
+    let mut h = None;
+    if height > 0 {
+        h = Some(Height::try_from(height)?)
+    }
+
     let res = client
         .inner
-        .tableland_query_call(stmt, TokenAmount::default(), gas_params, None)
+        .tableland_query_call(stmt, TokenAmount::default(), gas_params, h)
         .await?;
 
     Ok(json!(res.return_data))
@@ -294,4 +324,8 @@ fn gas_params(args: &TransArgs, gas_limit: u64) -> GasParams {
         gas_fee_cap: args.gas_fee_cap.clone(),
         gas_premium: args.gas_premium.clone(),
     }
+}
+
+fn block_gas_limit() -> u64 {
+    BLOCK_GAS_LIMIT
 }
