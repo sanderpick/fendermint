@@ -51,7 +51,9 @@ cmd! {
                 let router = health_route
                     .or(execute_route)
                     .or(query_route)
-                    .with(warp::cors().allow_any_origin())
+                    .with(warp::cors().allow_any_origin()
+                        .allow_headers(vec!["Content-Type"])
+                        .allow_methods(vec!["POST", "GET"]))
                     .recover(handle_rejection);
 
                 let saddr: SocketAddr = self.bind.parse().expect("Unable to parse server address");
@@ -176,8 +178,14 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
             "Payload too large".to_string(),
         )
     } else {
-        eprintln!("unhandled error: {:?}", err);
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", err))
+        let ferr = format!("{:?}", err);
+        let status = if ferr.contains("code:") {
+            StatusCode::BAD_REQUEST
+        } else {
+            eprintln!("unhandled error: {:?}", err);
+            StatusCode::INTERNAL_SERVER_ERROR
+        };
+        (status, ferr)
     };
 
     let json = warp::reply::json(&ErrorMessage::new(code.as_u16(), message));

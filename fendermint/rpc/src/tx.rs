@@ -3,7 +3,7 @@
 
 use std::marker::PhantomData;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use bytes::Bytes;
 use fendermint_vm_message::query::GasEstimate;
@@ -151,18 +151,16 @@ pub trait CallClient: QueryClient + BoundClient + Send + Sync {
             .tableland_query_call(stmt, value, gas_params)?;
 
         let response = self.call(msg, height).await?;
+        if response.value.code.is_err() {
+            return Err(anyhow!("{}", response.value.info));
+        }
 
-        let return_data = if response.value.code.is_err() {
-            None
-        } else {
-            let return_data = decode_tableland_query(&response.value)
-                .context("error decoding data from deliver_tx in query")?;
-            Some(return_data)
-        };
+        let return_data = decode_tableland_query(&response.value)
+            .context("error decoding data from deliver_tx in query")?;
 
         let response = CallResponse {
             response,
-            return_data,
+            return_data: Some(return_data),
         };
 
         Ok(response)
