@@ -8,7 +8,7 @@ parser.add_argument("file", help="SQL file")
 parser.add_argument("-u", "--url", dest="url", default="http://127.0.0.1:26650", help="Host URL")
 parser.add_argument("-s", "--start-sequence", dest="sequence", type=int, default=0, help="Start sequence")
 parser.add_argument("-b", "--batch-size", dest="batch", type=int, default=10, help="Batch size")
-parser.add_argument("-g", "--gas-limit", dest="gas", type=int, default=10000000000, help="Gas limit")
+parser.add_argument("-g", "--gas-limit", dest="gas", type=int, default=10000000000000, help="Gas limit")
 
 args = parser.parse_args()
 
