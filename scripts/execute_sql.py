@@ -19,7 +19,9 @@ with open(args.file) as file:
     for i, b in enumerate(batches):
         b = [s.rstrip() for s in b]
         stmts = ''.join(map(str, itt.chain.from_iterable(b)))
+        seq = args.sequence + i
         x = requests.post(args.url + "/v1/execute", json={'stmts': stmts,
-                                                          'sequence': args.sequence + i,
+                                                          'sequence': seq,
                                                           'gas_limit': args.gas})
         print(x.json())
+        print(seq)
