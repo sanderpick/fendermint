@@ -188,9 +188,9 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
         (status, ferr)
     };
 
-    let json = warp::reply::json(&ErrorMessage::new(code.as_u16(), message));
-
-    Ok(warp::reply::with_status(json, code))
+    let reply = warp::reply::json(&ErrorMessage::new(code.as_u16(), message));
+    let reply = warp::reply::with_header(reply, "Access-Control-Allow-Origin", "*");
+    Ok(warp::reply::with_status(reply, code))
 }
 
 /// Create a client, make a call to Tendermint with a closure, then maybe extract some JSON
